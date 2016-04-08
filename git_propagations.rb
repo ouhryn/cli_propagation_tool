@@ -68,20 +68,20 @@ TEXT
   	end
 end
 
-test_hash = {
-	branches: {
-	  "014_release_test_cli_propagation" => {
-	  	jira_main_link: "http://jira.com",
-	  	jira_propagation_link: "http://jira.com",
-	  	base_branch: '014_release',
-      title: 'title',
-	  },
-	},
-  reviewers: ['dlandberg', 'dlandberg'],
-  description: 'description',
-  risk_level: "1"
-}
+# test_hash = {
+# 	branches: {
+# 	  "014_release_test_cli_propagation" => {
+# 	  	jira_main_link: "http://jira.com",
+# 	  	jira_propagation_link: "http://jira.com",
+# 	  	base_branch: '014_release',
+#       title: 'title',
+# 	  },
+# 	},
+#   reviewers: ['dlandberg', 'dlandberg'],
+#   description: 'description',
+#   risk_level: "1"
+# }
 
-git = GitPropagation.new
-hash = git.create_pr(test_hash)
-puts hash
+# git = GitPropagation.new
+# hash = git.create_pr(test_hash)
+# puts hash
