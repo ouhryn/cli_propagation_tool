@@ -1,94 +1,27 @@
 require 'highline'
 require 'git'
 
-g = Git.open(Dir.pwd)
-
-p g.branches.local.find(&:current).name
-
-# Basic usage
-
-=begin
-answer = cli.choose do |menu|
-  menu.prompt = "Please choose your favorite programming language?  "
-  menu.choice(:ruby) { cli.say("Good choice!") }
-  menu.choices(:python, :perl) { cli.say("Not from around here, are you?") }
-end
-
-p answer
-
-answer = cli.choose(:ruby,:python,:perl)
-
-p answer
-=end
-
-#choose
-#target branches
-#1st lvl reviewer
-#2nd lvl reviewer
-#risk level
-#description
-
-module Propagator
-  module Git
-    class << self
-      def client
-        @client ||= Git.open(Dir.pwd)
-      end
-      
-      def current_branch_name
-        client.branches.local.find(&:current).name 
-      end
-    end
-  end
-end
-
-module Propadator
-  class InputData
-    def initialize cli, git
-      @git = git
-      @cli = cli
-    end
-
-    def github_creds
-      #load github creds here
-    end
-
-    def jira_creds
-      #load jira creds here
-    end
-
-
-    def jira_issue_key
-      current_branch_name.split('_').last
-    end
-
-    def branches_to_push
-      user_input_data.target_branch_names.map do |target_branch_name|
-        [target_branch_name, jira_issue_key].join('_')
-      end
-    end
-
-    def current_branch_name
-      @current_branch_name ||= Git.current_branch_name
-    end
-
-    def user_input_data
-      @pr_data ||= CLI.poll_user
-    end
-
-  end
-end
-
 module Propagator
   class << self
 
+    def params_to_create_propagations user_input
+      return user_input.jira_ticket_key, user_data.target_branch_names
+    end
 
 
-    def propagate input_data, git_client, jira_client, github_client
+    def params_to_create_prs user_data, jira_propagation_result
+      result = {:branches => {}}
+      jira_propagation_result.each do |pair|
+        propagation = OpenStruct.new pair
 
-      git_client.push_branches input_data.branches_to_push_names
 
-      jira_propagation_subtask_keys = jira_client.create_propagation_subtasks input_data.jira_issue_key, input_data.target_branch_names
+
+      end
+    end
+
+    def propagate user_data, jira_client, github_client
+
+      jira_propagation_result = jira_client.create_jira_subtasks *params_to_create_propagations(user_input)
       
       propagation_tasks_to_pr_ids = github_client.create_prs input_data.jira_issue_key, jira_propagation_subtask_keys, input_data.target_branch_names, input_data.reviewer_lvl_1, input_data.reviewer_lvl_2, input_data.risk_level, input_data.description
 
@@ -108,6 +41,10 @@ module Propagator
 
     def cli
       @cli ||= ::HighLine.new
+    end
+
+    def jira_ticket_key
+      cli.ask('Set jira ticket key:')
     end
     
     def target_branch_names
@@ -134,6 +71,7 @@ module Propagator
 
     def poll_user
       OpenStruct.new({
+        :jira_ticket_key => jira_ticket_key,
         :target_branche_names => target_branch_names,
         :reviewer_lvl_1 => reviewer_lvl_1,
         :reviewer_lvl_2 => reviewer_lvl_2,
