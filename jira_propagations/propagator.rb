@@ -24,7 +24,7 @@ module Propagator
 
     def reviewer_lvl_2
       puts 'Choose 2nd level reviewer:'
-      cli.choose('Eddy Kim', 'Brian Farr')
+      cli.choose('lvl 2 r1', 'lvl 2 r2')
     end
 
     def risk_level
@@ -38,12 +38,12 @@ module Propagator
 
     def poll_user
       OpenStruct.new({
-        :jira_ticket_key => "CD-52553" || jira_ticket_key,
-        :target_branch_names =>[ 'master'] || target_branch_names,
-        :reviewer_lvl_1 => 'rtriska' || reviewer_lvl_1,
-        :reviewer_lvl_2 => 'edk' || reviewer_lvl_2,
-        :risk_level => 1 || risk_level,
-        :description => 'oh my' || description
+        :jira_ticket_key => jira_ticket_key,
+        :target_branch_names => target_branch_names,
+        :reviewer_lvl_1 => reviewer_lvl_1,
+        :reviewer_lvl_2 => reviewer_lvl_2,
+        :risk_level => risk_level,
+        :description => description
       })
     end
   end
@@ -62,11 +62,11 @@ module Propagator
       jira_propagation_result.each do |pair|
 
 
-        result[:branches]["#{pair[:target_branch]}_#{user_data.jira_ticket_key}".to_sym] = {
+        result[:branches]["#{pair[:target_branch]}_#{user_data.jira_ticket_key}"] = {
           :jira_main_link => "https://coupadev.atlassian.net/browse/#{user_data.jira_ticket_key}",
           :jira_propagation_link => "https://coupadev.atlassian.net/browse/#{pair[:sub_ticket_key]}",
           :base_branch => pair[:target_branch],
-          :title => "#{user_data.jira_ticket_key} #{user_data.sub_ticket_key} #{pair[:target_branch]}"
+          :title => "#{user_data.jira_ticket_key} #{pair[:sub_ticket_key]} #{pair[:target_branch]}"
         }
       end
 
@@ -83,6 +83,15 @@ module Propagator
       end
     end
 
+    def params_to_update_prs jira_propagation_result, propagation_tasks_to_pr_ids
+      propagation_tasks_to_pr_ids.map do |branch_to_pr_url|
+        {
+          :url => branch_to_pr_url.values.first,
+          :key => jira_propagation_result.find { |p1| p1[:target_branch] ==  branch_to_pr_url.keys.first  }[:sub_ticket_key]
+        }
+      end
+    end
+
     def propagate user_data, github_client
       p params_to_create_propagations(user_data)
       jira_client = JiraPropagation.new *params_to_create_propagations(user_data)
@@ -90,8 +99,8 @@ module Propagator
       p  params_to_create_prs(user_data, jira_propagation_result)
       propagation_tasks_to_pr_ids = github_client.create_pr params_to_create_prs(user_data, jira_propagation_result)
   
-      p propagation_tasks_to_pr_ids
-      jira_client.update_sub_tasks propagation_tasks_to_pr_ids
+      p params_to_update_prs(jira_propagation_result, propagation_tasks_to_pr_ids)
+      jira_client.update_sub_tasks params_to_update_prs(jira_propagation_result, propagation_tasks_to_pr_ids)
 
     end
   end
