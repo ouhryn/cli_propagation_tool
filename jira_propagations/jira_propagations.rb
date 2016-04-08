@@ -59,7 +59,7 @@ class JiraPropagation
       {sub_ticket_key: sub_ticket.key, target_branch: target_branch}
     end
 
-    if jira_ticket.status.name != "In Progress"
+    if jira_ticket.status.name != "In Progress" && jira_ticket.status.name != "Code Propagation"
       transition = jira_ticket.transitions.build
       transition.save!("transition" => {"id" => 4})
     end
