@@ -1,40 +1,8 @@
 require 'highline'
 require 'git'
 
-module Propagator
-  class << self
-
-    def params_to_create_propagations user_input
-      return user_input.jira_ticket_key, user_data.target_branch_names
-    end
-
-
-    def params_to_create_prs user_data, jira_propagation_result
-      result = {:branches => {}}
-      jira_propagation_result.each do |pair|
-        propagation = OpenStruct.new pair
-
-
-
-      end
-    end
-
-    def propagate user_data, jira_client, github_client
-
-      jira_propagation_result = jira_client.create_jira_subtasks *params_to_create_propagations(user_input)
-      
-      propagation_tasks_to_pr_ids = github_client.create_prs input_data.jira_issue_key, jira_propagation_subtask_keys, input_data.target_branch_names, input_data.reviewer_lvl_1, input_data.reviewer_lvl_2, input_data.risk_level, input_data.description
-
-      jira_client.populate_pr_links_to_propagation_tasks
-
-    end
-  end
-end
-
-
-
-
-
+require 'jira_popagations'
+require '../git_propagations'
 
 module Propagator
   class CLI
@@ -81,4 +49,56 @@ module Propagator
     end
   end
 end
+
+module Propagator
+  class << self
+
+    def params_to_create_propagations user_input
+      return user_input.jira_ticket_key, user_data.target_branch_names
+    end
+
+
+    def params_to_create_prs user_data, jira_propagation_result
+      result = {:branches => {}}
+      jira_propagation_result.each do |pair|
+        propagation = OpenStruct.new pair
+
+
+        result[:branches]["#{pair.target_branch}_#{user_data.jira_ticket_key}".to_sym] = {
+          :jira_main_link => "https://coupadev.atlassian.net/browse/#{user_data.jira_ticket_key}",
+          :jira_propagation_link => "https://coupadev.atlassian.net/browse/#{pair.sub_ticket_key}",
+          :base_branch => pair.target_branch,
+          :title => "#{user_data.jira_ticket_key} #{user_data.sub_ticket_key} #{pair.target_branch}"
+        }
+      end
+
+      result[:description] = user_data.description
+      result[:reviewers] = [user_data.reviewer_lvl_1, user_data.reviewer_lvl_2]
+      result[:risk_level] = user_data.risk_level
+      result
+
+    end
+
+    def params_to_populate_prs_to_subtasks tasks_to_pr_ids
+      tasks_to_pr_ids.each_pair.map do |ticket_key, pr_url|
+        {:key => ticket_key, :url => pr_url} 
+      end
+    end
+
+    def propagate user_data, github_client
+      jira_client = JiraPropagation.new *params_to_create_propagations(user_input)
+      jira_propagation_result = jira.create_jira_sub_task#jira_client.create_jira_subtasks 
+      
+      propagation_tasks_to_pr_ids = github_client.create_pr *oarams_to_create_prs
+
+      jira_client.update_sub_tasks propagation_tasks_to_pr_ids
+
+    end
+  end
+end
+
+
+Propagator.propagate Propagator::CLI.new.poll_user, GitPropagation.new 
+
+
 
