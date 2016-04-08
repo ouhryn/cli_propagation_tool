@@ -68,9 +68,8 @@ class JiraPropagation
   end
 end
 
-jira = JiraPropagation.new("CD-52443", ["014_6_release", "014_7_release"])
-options = jira.create_jira_sub_task
+#jira = JiraPropagation.new("CD-52443", ["014_6_release", "014_7_release"])
+#options = jira.create_jira_sub_task
 
-option_hash = [{key: options[0][:sub_ticket_key], url: "http://www.google.com"}, {key: options[1][:sub_ticket_key], url: "http://www.google.com.ua"}]
-jira.update_sub_tasks(option_hash)
-
+#option_hash = [{key: options[0][:sub_ticket_key], url: "http://www.google.com"}, {key: options[1][:sub_ticket_key], url: "http://www.google.com.ua"}]
+#jira.update_sub_tasks(option_hash)
