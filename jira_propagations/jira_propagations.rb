@@ -39,14 +39,6 @@ class JiraPropagation
     p "Jira sub tickets were successfully updated"
   end
 
-  def new_sub_ticket_options
-    sub_ticket_options = []
-    @new_sub_tickets.each do |sub_ticket|
-      sub_ticket_options << {sub_ticket_key: sub_ticket.key}
-    end
-    sub_ticket_options
-  end
-
   def self.read_credentials_from_file
     f = File.open("./.jlogin", "r")
     [f.readline.chomp, f.readline.chomp]
@@ -64,7 +56,7 @@ class JiraPropagation
 
       transition = sub_ticket.transitions.build
       transition.save!("transition" => {"id" => 4})
-      sub_ticket
+      {sub_ticket_key: sub_ticket.key, target_branch: target_branch}
     end
 
     if jira_ticket.status.name != "In Progress"
@@ -76,10 +68,8 @@ class JiraPropagation
   end
 end
 
-jira = JiraPropagation.new("CD-52443", ["014_6_release", "014_7_release"])
-jira.create_jira_sub_task
-options = jira.new_sub_ticket_options
+#jira = JiraPropagation.new("CD-52443", ["014_6_release", "014_7_release"])
+#options = jira.create_jira_sub_task
 
-option_hash = [{key: options[0][:sub_ticket_key], url: "http://www.google.com"}, {key: options[1][:sub_ticket_key], url: "http://www.google.com.ua"}]
-jira.update_sub_tasks(option_hash)
-
+#option_hash = [{key: options[0][:sub_ticket_key], url: "http://www.google.com"}, {key: options[1][:sub_ticket_key], url: "http://www.google.com.ua"}]
+#jira.update_sub_tasks(option_hash)
