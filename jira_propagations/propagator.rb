@@ -38,8 +38,16 @@ module Propagator
       cli.choose(1,2,3,4,5)
     end
 
-    def description
-      cli.ask('Specify description:')
+    def summary_of_issue
+      cli.ask('Specify summary of issue:')
+    end
+
+    def summary_of_change
+      cli.ask('Specify summary of change:')
+    end
+
+    def testing_approach
+      cli.ask('Specify testing approach:')
     end
 
     def poll_user
@@ -49,7 +57,9 @@ module Propagator
         :reviewer_lvl_1 => reviewer_lvl_1,
         :reviewer_lvl_2 => reviewer_lvl_2,
         :risk_level => risk_level,
-        :description => description
+        :summary_of_issue => summary_of_issue,
+        :summary_of_change => summary_of_change,
+        :testing_approach => testing_approach
       })
     end
   end
@@ -76,11 +86,18 @@ module Propagator
         }
       end
 
-      result[:description] = user_data.description
+      result[:summary_of_issue] = user_data.summary_of_issue
+      result[:summary_of_change] = user_data.summary_of_change
+      result[:testing_approach] = user_data.testing_approach
       result[:reviewers] = [user_data.reviewer_lvl_1, user_data.reviewer_lvl_2]
       result[:risk_level] = user_data.risk_level
+      result[:description_template] = pr_description_template
       result
 
+    end
+
+    def pr_description_template
+      File.open('pr_description.md.erb') {|f| f.read }
     end
 
     def params_to_populate_prs_to_subtasks tasks_to_pr_ids

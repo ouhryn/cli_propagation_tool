@@ -18,13 +18,15 @@ class GitPropagation
 
   		base_branch = test_hash[:branches][head_branch][:base_branch]
   		title = test_hash[:branches][head_branch][:title]
-  		description = test_hash[:description]
+  		summary_of_issue = test_hash[:summary_of_issue]
+  		summary_of_change = test_hash[:summary_of_change]
+  		testing_approach = test_hash[:testing_approach]
   		reviewers = test_hash[:reviewers]
   		jira_main_link = test_hash[:branches][head_branch][:jira_main_link]
   		jira_propagation_link = test_hash[:branches][head_branch][:jira_propagation_link]
       risk_level = test_hash[:risk_level]
 
-  		body = formate_body(description, reviewers, jira_main_link, jira_propagation_link)
+  		body = formate_body(test_hash[:description_template], test_hash.merge(test_hash[:branches][head_branch]))
       begin
   		  created_pr = @client.create_pull_request(DEFAULT_REPO, base_branch, head_branch, title, body)
       rescue Octokit::UnprocessableEntity
@@ -53,19 +55,21 @@ class GitPropagation
       @client.add_labels_to_an_issue(DEFAULT_REPO, pr["number"], labels_to_add)
     end
 
-  	def formate_body(description, reviewers, jira_main_link, jira_propagation_link)
-  		reviewers_text = reviewers.map{|reviewer| "- [ ] @#{reviewer}"}.join("\n")
-  		reviewers_text << "\n"
-  		<<-TEXT
-## JIRA
-Jira main ticket: #{jira_main_link}
-Jira propagation ticket: #{jira_propagation_link}
-## Code reviewers
-#{reviewers_text}
-## Description
-#{description}
-TEXT
+  	def formate_body(template, data)
+      PrDescription.new(template, data).render
   	end
+
+  class PrDescription
+    attr_reader :template, :data
+    def initialize template, data
+      @template = template
+      @data = data
+    end
+
+    def render
+      ERB.new(template).result(binding)
+    end
+  end
 end
 
 # test_hash = {
