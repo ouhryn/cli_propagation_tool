@@ -2,9 +2,14 @@ require 'highline'
 
 require_relative 'jira_propagations'
 require_relative '../git_propagations'
+require 'yaml'
 
 module Propagator
   class CLI
+    attr_reader :reviewers
+    def initialize reviewers
+      @reviewers = reviewers
+    end
 
     def cli
       @cli ||= ::HighLine.new
@@ -19,12 +24,13 @@ module Propagator
     end
 
     def reviewer_lvl_1
-      cli.ask('Please Specify 1st level reviewer:')
+      puts 'Choose 1st level reviewer:'
+      cli.choose(reviewers.first)
     end
 
     def reviewer_lvl_2
       puts 'Choose 2nd level reviewer:'
-      cli.choose('lvl 2 r1', 'lvl 2 r2')
+      cli.choose(reviewers.second)
     end
 
     def risk_level
@@ -106,7 +112,9 @@ module Propagator
   end
 end
 
-Propagator.propagate Propagator::CLI.new.poll_user, GitPropagation.new 
+config = YAML.load_file('propagations.yml')
+reviewers = OpenStruct.new config['reviewers']
+Propagator.propagate Propagator::CLI.new(reviewers).poll_user, GitPropagation.new
 
 
 

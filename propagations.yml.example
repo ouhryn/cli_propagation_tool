@@ -1,0 +1,9 @@
+reviewers:
+  first:
+    - 1st lvl reviewer
+    - rtriska
+    - dlandberg
+  second:
+    - 2nd lvl reviewer
+    - edk
+    - farrspace
