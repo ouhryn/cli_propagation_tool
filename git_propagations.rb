@@ -5,9 +5,13 @@ class GitPropagation
   DEFAULT_REPO = "coupa/coupa_development"
   DEFAULT_LABELS = ["needs review"]
 
-  attr_accessor :client
-  def initialize
-  	@client = Octokit::Client.new(:access_token => ENV['CLI_PROPAGATION_TOOL'])
+  attr_accessor :access_token
+  def initialize access_token
+    @access_token = access_token
+  end
+
+  def client
+    @client ||= Octokit::Client.new(:access_token => access_token)
   end
 
   def create_pr(test_hash)
@@ -28,7 +32,7 @@ class GitPropagation
 
   		body = formate_body(test_hash[:description_template], test_hash.merge(test_hash[:branches][head_branch]))
       begin
-  		  created_pr = @client.create_pull_request(DEFAULT_REPO, base_branch, head_branch, title, body)
+  		  created_pr = client.create_pull_request(DEFAULT_REPO, base_branch, head_branch, title, body)
       rescue Octokit::UnprocessableEntity
         puts "Can't create a PR to the #{base_branch} from #{head_branch}. Maybe you already created it?"
       end
@@ -52,7 +56,7 @@ class GitPropagation
     def add_labels_to_pr(pr, risk_level)
       labels_to_add = DEFAULT_LABELS
       labels_to_add << "risk level #{risk_level}" unless risk_level.nil?
-      @client.add_labels_to_an_issue(DEFAULT_REPO, pr["number"], labels_to_add)
+      client.add_labels_to_an_issue(DEFAULT_REPO, pr["number"], labels_to_add)
     end
 
   	def formate_body(template, data)

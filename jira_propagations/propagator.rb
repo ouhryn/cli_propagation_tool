@@ -115,23 +115,25 @@ module Propagator
       end
     end
 
-    def propagate user_data, github_client
+    def propagate user_data, github_client, jira_client
       p params_to_create_propagations(user_data)
-      jira_client = JiraPropagation.new *params_to_create_propagations(user_data)
-      jira_propagation_result = jira_client.create_jira_sub_task#jira_client.create_jira_subtasks 
+      jira_propagation_result = jira_client.create_jira_sub_task *params_to_create_propagations(user_data)
+
       p  params_to_create_prs(user_data, jira_propagation_result)
       propagation_tasks_to_pr_ids = github_client.create_pr params_to_create_prs(user_data, jira_propagation_result)
   
       p params_to_update_prs(jira_propagation_result, propagation_tasks_to_pr_ids)
       jira_client.update_sub_tasks params_to_update_prs(jira_propagation_result, propagation_tasks_to_pr_ids)
-
     end
   end
 end
 
 config = YAML.load_file('propagations.yml')
 reviewers = OpenStruct.new config['reviewers']
-Propagator.propagate Propagator::CLI.new(reviewers).poll_user, GitPropagation.new
+jira = OpenStruct.new config['jira']
+git = OpenStruct.new config['git']
+
+Propagator.propagate Propagator::CLI.new(reviewers).poll_user, GitPropagation.new(git.token), JiraPropagation.new(jira.username, jira.password)
 
 
 

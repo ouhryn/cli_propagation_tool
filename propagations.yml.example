@@ -1,3 +1,8 @@
+git:
+  token: token
+jira:
+  username: username
+  password: password
 reviewers:
   first:
     - 1st lvl reviewer
