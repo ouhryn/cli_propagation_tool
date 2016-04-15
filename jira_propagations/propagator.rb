@@ -2,9 +2,14 @@ require 'highline'
 
 require_relative 'jira_propagations'
 require_relative '../git_propagations'
+require 'yaml'
 
 module Propagator
   class CLI
+    attr_reader :reviewers
+    def initialize reviewers
+      @reviewers = reviewers
+    end
 
     def cli
       @cli ||= ::HighLine.new
@@ -19,12 +24,13 @@ module Propagator
     end
 
     def reviewer_lvl_1
-      cli.ask('Please Specify 1st level reviewer:')
+      puts 'Choose 1st level reviewer:'
+      cli.choose(reviewers.first)
     end
 
     def reviewer_lvl_2
       puts 'Choose 2nd level reviewer:'
-      cli.choose('lvl 2 r1', 'lvl 2 r2')
+      cli.choose(reviewers.second)
     end
 
     def risk_level
@@ -32,8 +38,16 @@ module Propagator
       cli.choose(1,2,3,4,5)
     end
 
-    def description
-      cli.ask('Specify description:')
+    def summary_of_issue
+      cli.ask('Specify summary of issue:')
+    end
+
+    def summary_of_change
+      cli.ask('Specify summary of change:')
+    end
+
+    def testing_approach
+      cli.ask('Specify testing approach:')
     end
 
     def poll_user
@@ -43,7 +57,9 @@ module Propagator
         :reviewer_lvl_1 => reviewer_lvl_1,
         :reviewer_lvl_2 => reviewer_lvl_2,
         :risk_level => risk_level,
-        :description => description
+        :summary_of_issue => summary_of_issue,
+        :summary_of_change => summary_of_change,
+        :testing_approach => testing_approach
       })
     end
   end
@@ -70,11 +86,18 @@ module Propagator
         }
       end
 
-      result[:description] = user_data.description
+      result[:summary_of_issue] = user_data.summary_of_issue
+      result[:summary_of_change] = user_data.summary_of_change
+      result[:testing_approach] = user_data.testing_approach
       result[:reviewers] = [user_data.reviewer_lvl_1, user_data.reviewer_lvl_2]
       result[:risk_level] = user_data.risk_level
+      result[:description_template] = pr_description_template
       result
 
+    end
+
+    def pr_description_template
+      File.open('pr_description.md.erb') {|f| f.read }
     end
 
     def params_to_populate_prs_to_subtasks tasks_to_pr_ids
@@ -92,21 +115,25 @@ module Propagator
       end
     end
 
-    def propagate user_data, github_client
+    def propagate user_data, github_client, jira_client
       p params_to_create_propagations(user_data)
-      jira_client = JiraPropagation.new *params_to_create_propagations(user_data)
-      jira_propagation_result = jira_client.create_jira_sub_task#jira_client.create_jira_subtasks 
+      jira_propagation_result = jira_client.create_jira_sub_task *params_to_create_propagations(user_data)
+
       p  params_to_create_prs(user_data, jira_propagation_result)
       propagation_tasks_to_pr_ids = github_client.create_pr params_to_create_prs(user_data, jira_propagation_result)
   
       p params_to_update_prs(jira_propagation_result, propagation_tasks_to_pr_ids)
       jira_client.update_sub_tasks params_to_update_prs(jira_propagation_result, propagation_tasks_to_pr_ids)
-
     end
   end
 end
 
-Propagator.propagate Propagator::CLI.new.poll_user, GitPropagation.new 
+config = YAML.load_file('propagations.yml')
+reviewers = OpenStruct.new config['reviewers']
+jira = OpenStruct.new config['jira']
+git = OpenStruct.new config['git']
+
+Propagator.propagate Propagator::CLI.new(reviewers).poll_user, GitPropagation.new(git.token), JiraPropagation.new(jira.username, jira.password)
 
 
 

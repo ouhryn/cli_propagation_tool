@@ -4,24 +4,28 @@ require 'pp'
 require 'pry'
 
 class JiraPropagation
-  attr_accessor :options, :new_sub_tickets
 
-  def initialize jira_key, target_branches
-    @username, @password = JiraPropagation.read_credentials_from_file
-    @options = {
-        :username => @username,
-        :password => @password,
-        :site => "https://coupadev.atlassian.net/",
-        :auth_type => :basic,
-        :use_ssl => true,
-        :context_path => ''
+  def initialize username, password
+    @username = username
+    @password = password
+  end
+
+  def client_options
+    @client_options ||= {
+      :username => username,
+      :password => password,
+      :site => "https://coupadev.atlassian.net/",
+      :auth_type => :basic,
+      :use_ssl => true,
+      :context_path => ''
     }
-    @jira_key = jira_key
-    @target_branches = target_branches
+  end
+
+  def client
+    @client ||= JIRA::Client.new(client_options)
   end
 
   def update_sub_tasks(sub_ticket_options)
-    client = JIRA::Client.new(options)
     parent_jira_sub_ticket_id = ''
     sub_ticket_options.each do |option|
       jira_sub_ticket = client.Issue.find("#{option[:key]}")
@@ -39,19 +43,13 @@ class JiraPropagation
     p "Jira sub tickets were successfully updated"
   end
 
-  def self.read_credentials_from_file
-    f = File.open("./.jlogin", "r")
-    [f.readline.chomp, f.readline.chomp]
-  end
+  def create_jira_sub_task jira_key, target_branches
+    jira_ticket = client.Issue.find("#{jira_key}")
+    jira_project = client.Project.find("#{jira_key[/\A\w+/]}")
 
-  def create_jira_sub_task
-    client = JIRA::Client.new(@options)
-    jira_ticket = client.Issue.find("#{@jira_key}")
-    jira_project = client.Project.find("#{@jira_key[/\A\w+/]}")
-
-    @new_sub_tickets = @target_branches.map do |target_branch|
+    @new_sub_tickets = target_branches.map do |target_branch|
       sub_ticket = client.Issue.build
-      sub_ticket.save({fields: {parent: {id: "#{jira_ticket.id}"}, project: {id: "#{jira_project.id}"}, summary: "Propagate #{@jira_key} in #{target_branch}", issuetype: {id: "10600"}, description: "", customfield_12905: {'name' => "#{target_branch}"}}})
+      sub_ticket.save({fields: {parent: {id: "#{jira_ticket.id}"}, project: {id: "#{jira_project.id}"}, summary: "Propagate #{jira_key} in #{target_branch}", issuetype: {id: "10600"}, description: "", customfield_12905: {'name' => "#{target_branch}"}}})
       sub_ticket.fetch
 
       transition = sub_ticket.transitions.build
