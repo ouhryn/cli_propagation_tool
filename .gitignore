@@ -1,3 +1,5 @@
 .idea/
 .DS_Store
 .jlogin
+propagations.yml
+*.swp
